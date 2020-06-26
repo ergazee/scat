@@ -1,0 +1,103 @@
+---
+title: "scat - scRNA-seq analysis toolkit"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 120),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+
+### 安装R包
+
+```{r init}
+# 安装开发工具包
+if (!require("devtools")) {
+	install.packages("devtools")
+	library(devtools)
+}
+# 从GitHub上安装scat包
+if (!require("scat")) {
+	install_github('ergazee/scat')
+	library(sctk)
+}
+
+```
+<details>
+  <summary>**这样的写法可以先检查R包是否安装，已安装则直接调用，否则先安装再调用。**</summary>
+
+### 数据准备
+导入表达矩阵
+```{r}
+mat1 <- read.table("..//extdata//refData1.txt",header=TRUE,row.names = 1)
+mat2 <- read.table("..//extdata//refData2.txt",header=TRUE,row.names = 1)
+mat3 <- read.table("..//extdata//Data1.txt",header=TRUE,row.names = 1)
+mat4 <- read.table("..//extdata//Data2.txt",header=TRUE,row.names = 1)
+```
+
+导入参考数据集的标签信息
+```{r}
+refLabel1 <- read.table("..//extdata//refLabel1.txt",header=TRUE,row.names = 1)
+refLabel1$refLabel <- refLabel1$Lineage
+
+refLabel2 <- read.table("..//extdata//refLabel2.txt",header=TRUE,row.names = 1)
+refLabel2$refLabel <- refLabel2$Lineage
+```
+
+分别将实验数据集和参考数据集处理为seurat对象，然后保存为data.list
+```{r}
+refData1 <- datainput(mat=mat1, name="Human_Ref", refLabel=refLabel1)
+refData2 <- datainput(mat=mat2, name="Monkey_Ref", refLabel=refLabel2)
+
+data1 <- datainput(mat=mat3, name="Human_Chimera")
+data2 <- datainput(mat=mat4, name="Monkey_Chimera")
+
+data.list <- list(data1, data2, refData1, refData2)
+rm(list=setdiff(ls(), "data.list"))
+```
+
+
+### 标准整合流程
+细胞数据质控
+```{r}
+for (i in 1:length(data.list) ){
+  data.list[[i]][["percent.mt"]] <- PercentageFeatureSet(data.list[[i]], pattern = "^MT-")
+  pdf(as.character(paste("data_quality",i,".pdf",sep = "_")),width = 10, height = 6)
+  print(VlnPlot(data.list[[i]], features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3))
+  dev.off()
+}
+
+# 细胞质控
+for (i in 1:length(data.list) ){
+  data.list[[i]] <- subset(data.list[[i]], subset = nFeature_RNA > 200 & percent.mt < 10)
+  data.list[[i]] <- NormalizeData(data.list[[i]], verbose = FALSE)
+}
+
+# 输出质控后的细胞数量
+cell_count = sapply(data.list, ncol)
+message("cell count: \n",paste("data", seq(1:length(cell_count)),": ",cell_count,"\n", sep = ""))
+
+```
+
+### 遍历寻优
+```{r}
+data.integrated <- ptuner(data.list = data.list,
+       Normalize_Method = "Standard",
+       Nmin = 2000,
+       Nmax = 3000,
+       Rmin = 0.5,
+       Rmax = 0.6,
+       Dims = 30)
+
+save(data.integrated, file = "TEST.Rda")
+```

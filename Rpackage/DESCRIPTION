@@ -1,16 +1,16 @@
 Package: scat
 Type: Package
 Title: This is a toolkit for scRNA-seq data analysis.
-Version: 0.1.0
+Version: 1.0.0
 Author: Shuguang Wang
 Maintainer: Shuguang Wang <scottwong1212@gmail.com>
-Description: I am struggling to formulate a description.
+Description: scRNA-seq analysis toolkit
 License: MIT
 Encoding: UTF-8
 LazyData: true
-Depends: Seurat,dplyr,ggplot2,ggalluvial,reshape2,VennDiagram
+Depends: Seurat,dplyr,ggplot2,ggalluvial,reshape2,VennDiagram,pheatmap,clusterProfiler
 Imports: cowplot
 Suggests: knitr
-URL: https://github.com/ergazee/sctk
-BugReports: https://github.com/ergazee/sctk/issues
+URL: https://github.com/ergazee/scat
+BugReports: https://github.com/ergazee/scat/issues
 RoxygenNote: 7.0.2

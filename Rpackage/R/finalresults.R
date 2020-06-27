@@ -16,12 +16,12 @@ finalresults <- function(data.list,
 
     if(Normalize_Method == "Standard"){
       for (m in 1:length(data.list)){
-        data.list[[m]] <- FindVariableFeatures(data.list[[m]], selection.method = "vst", nfeatures = nFeatures)
+        data.list[[m]] <- FindVariableFeatures(data.list[[m]], selection.method = "vst", nfeatures = nFeatures, verbose = FALSE)
       }
-      data.anchors <- FindIntegrationAnchors(object.list = data.list, dims = 1:Dims)
-      data.integrated <- IntegrateData(anchorset = data.anchors, dims = 1:Dims)
+      data.anchors <- FindIntegrationAnchors(object.list = data.list, dims = 1:Dims, verbose = FALSE)
+      data.integrated <- IntegrateData(anchorset = data.anchors, dims = 1:Dims, verbose = FALSE)
       DefaultAssay(data.integrated) <- "integrated"
-      data.integrated <- ScaleData(data.integrated)
+      data.integrated <- ScaleData(data.integrated, verbose = FALSE)
     }
     else if(Normalize_Method == "SCT"){
       data.features <- SelectIntegrationFeatures(object.list = data.list, nfeatures = nFeatures)
@@ -33,12 +33,12 @@ finalresults <- function(data.list,
       stop("please set a normalize method: Standard or SCT")
     }
 
-    data.integrated <- RunPCA(data.integrated, npcs = Dims)
-    data.integrated <- RunUMAP(data.integrated, reduction = "pca", dims = 1:Dims)
-    data.integrated <- RunTSNE(data.integrated, reduction = "pca", dims = 1:Dims)
-    data.integrated <- FindNeighbors(data.integrated, reduction = "pca", dims = 1:Dims)
+    data.integrated <- RunPCA(data.integrated, npcs = Dims, verbose = FALSE)
+    data.integrated <- RunUMAP(data.integrated, reduction = "pca", dims = 1:Dims, verbose = FALSE)
+    data.integrated <- RunTSNE(data.integrated, reduction = "pca", dims = 1:Dims, verbose = FALSE)
+    data.integrated <- FindNeighbors(data.integrated, reduction = "pca", dims = 1:Dims, verbose = FALSE)
 
-    data.integrated <- FindClusters(data.integrated, resolution = Resolution)
+    data.integrated <- FindClusters(data.integrated, resolution = Resolution, verbose = FALSE)
 
 
     for(i in c("umap", "tsne")){
@@ -111,8 +111,7 @@ finalresults <- function(data.list,
     rm(rowsums1,rowsums2,rRatio)
 
     dt3[dim(dt3)[1],dim(dt3)[2]] <- ratio
-    write.csv(dt3, as.character(paste("Final_table",nFeatures,Resolution,".csv",sep = "_")))
-
+    assign("cluster_table",dt3, envir=globalenv())
 
     NewLabel <- apply(dt2, 1, function(t) colnames(dt2)[which.max(t)])
     NewLabel <- replace(NewLabel, names(NewLabel), make.names(NewLabel,unique=T))
@@ -137,8 +136,7 @@ finalresults <- function(data.list,
                              "celltype" = as.character(data.integrated@active.ident),
                              stringsAsFactors = FALSE)
     rownames(CellType) <- CellType$barcodes
-    write.csv(CellType, as.character(paste("CellType",nFeatures,Resolution,".csv",sep = "_")))
-
+    assign("cell_types",CellType, envir=globalenv())
 
     return(data.integrated)
   }

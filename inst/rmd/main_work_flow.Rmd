@@ -28,10 +28,9 @@ if (!require("devtools")) {
 }
 # 从GitHub上安装scat包
 if (!require("scat")) {
-	install_github('ergazee/scat')
+	install_github('ergazee/scat/Rpackage')
 	library(sctk)
 }
-
 ```
 <details>
   <summary>**这样的写法可以先检查R包是否安装，已安装则直接调用，否则先安装再调用。**</summary>
@@ -70,6 +69,7 @@ rm(list=setdiff(ls(), "data.list"))
 ### 标准整合流程
 细胞数据质控
 ```{r}
+# 计算线粒体RNA比例，可视化细胞基因数，pdf文件保存在工作路径中
 for (i in 1:length(data.list) ){
   data.list[[i]][["percent.mt"]] <- PercentageFeatureSet(data.list[[i]], pattern = "^MT-")
   pdf(as.character(paste("data_quality",i,".pdf",sep = "_")),width = 10, height = 6)
@@ -86,18 +86,94 @@ for (i in 1:length(data.list) ){
 # 输出质控后的细胞数量
 cell_count = sapply(data.list, ncol)
 message("cell count: \n",paste("data", seq(1:length(cell_count)),": ",cell_count,"\n", sep = ""))
-
 ```
+<details>
+  <summary>**若选择SCT流程，则预处理步骤应如下所示**</summary>
+for (i in 1:length(data.list) ){
+  data.list[[i]] <- PercentageFeatureSet(data.list[[i]], pattern = "^MT-", col.name = "percent.mt")
+  pdf(as.character(paste("data_quality",i,".pdf",sep = "_")),width = 10, height = 6)
+  print(VlnPlot(data.list[[i]], features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3))
+  dev.off()
+}
+for (i in 1:length(data.list) ){
+  data.list[[i]] <- subset(data.list[[i]], subset = nFeature_RNA > 200 & percent.mt < 10)
+  data.list[[i]] <- SCTransform(data.list[[i]], vars.to.regress = "percent.mt", verbose = FALSE)
+}
 
-### 遍历寻优
+### 遍历寻优,返回的data.integrated即为最优参数结果
 ```{r}
 data.integrated <- ptuner(data.list = data.list,
-       Normalize_Method = "Standard",
-       Nmin = 2000,
-       Nmax = 3000,
-       Rmin = 0.5,
-       Rmax = 0.6,
-       Dims = 30)
+       Normalize_Method = "Standard", Dims = 30,
+       Nmin = 2000, Nmax = 3000, Nstep = 1000,
+       Rmin = 0.5, Rmax = 0.8, Rstep = 0.1)
+```
+<details>
+  <summary>**若选择SCT流程，则Normalize_Method参数应设置为SCT**</summary>
 
-save(data.integrated, file = "TEST.Rda")
+### 不同参数组合下参考数据集的标签一致性
+```{r}
+consistency
+```
+
+### Sankeyplot可以可视化细胞标签对应关系，展示细胞类型鉴定过程
+```{r fig.width=8, fig.height=6}
+Sankeyplot(data.integrated,"refLabel","seurat_clusters","celltype")
+```
+
+### 可视化亚群间相关系数
+```{r fig.width=8, fig.height=6}
+av.exp <- AverageExpression(data.integrated)$RNA
+cor.exp <- as.data.frame(cor(av.exp,method = "pearson"))
+pheatmap(cor.exp, display_numbers = TRUE, fontsize_row = 12, fontsize_col = 12,angle_col = 90)
+```
+<details>
+  <summary>**method参数可设置为pearson或spearman等**</summary>
+
+### Barplot可以可视化不同细胞亚群间的属性分布，如基因数
+```{r fig.width=8, fig.height=6}
+Barplot(data.integrated,"celltype","nFeature_RNA")
+```
+
+### 提取特定样本，计算各亚群的显著上调markers
+```{r fig.width=8, fig.height=6}
+cells.use <- colnames(data.integrated)[which(data.integrated[[]]['type'] == "Human_Chimera" |
+                                             data.integrated[[]]['type'] == "Monkey_Chimera")]
+data.new <- subset(data.integrated, cells = cells.use)
+Sankeyplot(data.new,"refLabel","seurat_clusters","celltype")
+data.markers <- FindAllMarkers(data.new, only.pos = TRUE, min.pct = 0.2, logfc.threshold = 0.2)
+```
+
+### 绘制亚群间markers的韦恩图，png文件保存在工作路径中
+```{r}
+markers <- list(PE=data.markers[data.markers$cluster=="PE",]$gene,
+                TE=data.markers[data.markers$cluster=="TE",]$gene,
+                EPI=data.markers[data.markers$cluster=="EPI",]$gene)
+VN3(markers,"PE_TE_EPI.png")
+```
+<details>
+  <summary>**VN2，VN3，VN4，VN5函数对应不同的亚群数量**</summary>
+
+### 绘制各亚群的topN marker
+```{r fig.width=8, fig.height=6}
+top2 <- data.markers %>% group_by(cluster) %>% top_n(n = 1, wt = avg_logFC)
+DotPlot(data.new, features = unique(top2$gene)) + RotatedAxis()
+```
+
+### 绘制特定基因在样本中的表达分布
+```{r fig.width=8, fig.height=6}
+genes <- c("DCN","SH2D4A","SVIP","MAD2L2")
+FeaturePlot(data.new, features = genes, reduction = "tsne", cols = c("lightgrey", "red"))
+```
+
+### 对各亚群的markers进行富集分析，图表文件保存在工作路径中
+```{r}
+library(org.Hs.eg.db)
+Enrich(data.markers,database = "KEGG",orgdb = "org.Hs.eg.db",organism = 'hsa')
+```
+<details>
+  <summary>**database参数可设置为GO或KEGG**</summary>
+
+### 保存Rda,用于后续分析
+```{r}
+save(data.new, file = "test.Rda")
 ```

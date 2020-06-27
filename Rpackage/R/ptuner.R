@@ -29,12 +29,12 @@ ptuner <- function(data.list,
 
     if(Normalize_Method == "Standard"){
       for (m in 1:length(data.list)){
-        data.list[[m]] <- FindVariableFeatures(data.list[[m]], selection.method = "vst", nfeatures = i)
+        data.list[[m]] <- FindVariableFeatures(data.list[[m]], selection.method = "vst", nfeatures = i, verbose = FALSE)
       }
-      data.anchors <- FindIntegrationAnchors(object.list = data.list, dims = 1:Dims)
-      data.integrated <- IntegrateData(anchorset = data.anchors, dims = 1:Dims)
+      data.anchors <- FindIntegrationAnchors(object.list = data.list, dims = 1:Dims, verbose = FALSE)
+      data.integrated <- IntegrateData(anchorset = data.anchors, dims = 1:Dims, verbose = FALSE)
       DefaultAssay(data.integrated) <- "integrated"
-      data.integrated <- ScaleData(data.integrated)
+      data.integrated <- ScaleData(data.integrated, verbose = FALSE)
     }
     else if(Normalize_Method == "SCT"){
       data.features <- SelectIntegrationFeatures(object.list = data.list, nfeatures = i)
@@ -46,13 +46,13 @@ ptuner <- function(data.list,
       stop("please set a normalize method: Standard or SCT")
     }
 
-    data.integrated <- RunPCA(data.integrated, npcs = Dims)
-    data.integrated <- RunUMAP(data.integrated, reduction = "pca", dims = 1:Dims)
-    data.integrated <- RunTSNE(data.integrated, reduction = "pca", dims = 1:Dims)
-    data.integrated <- FindNeighbors(data.integrated, reduction = "pca", dims = 1:Dims)
+    data.integrated <- RunPCA(data.integrated, npcs = Dims, verbose = FALSE)
+    data.integrated <- RunUMAP(data.integrated, reduction = "pca", dims = 1:Dims, verbose = FALSE)
+    data.integrated <- RunTSNE(data.integrated, reduction = "pca", dims = 1:Dims, verbose = FALSE)
+    data.integrated <- FindNeighbors(data.integrated, reduction = "pca", dims = 1:Dims, verbose = FALSE)
 
     for (j in seq(Rmin, Rmax, Rstep)){
-      data.integrated <- FindClusters(data.integrated, resolution = j)
+      data.integrated <- FindClusters(data.integrated, resolution = j, verbose = FALSE)
 
       dt <- data.frame("ID" = names(data.integrated@active.ident),
                          "original" = unlist(lapply(data.list, function(x) as.character(x@meta.data$refLabel))),
@@ -74,7 +74,7 @@ ptuner <- function(data.list,
       ratios[as.character(i),as.character(j)] <- ratio
     }
   }
-  write.csv(ratios, as.character(paste("Coincidence",Nmin,Nmax,Rmin,Rmax,".csv",sep = "_")))
+  assign("consistency",ratios, envir=globalenv())
   bestp <- as.list(as.numeric(which(ratios == max(ratios), arr.ind = TRUE)))
   bestp[[1]] <- as.numeric(rownames(ratios)[bestp[[1]]])
   bestp[[2]] <- as.numeric(colnames(ratios)[bestp[[2]]])
@@ -84,7 +84,8 @@ ptuner <- function(data.list,
                                   nFeatures = bestp[[1]],
                                   Resolution = bestp[[2]],
                                   Dims = Dims)
+
+  message(paste("\nThe best paramater for your datasets is: nfeatures=", bestp[[1]], ", resolution=", bestp[[2]], ". \nThe max coincidence is: ", max(ratios), "\n", sep = ''))
   return(data.integrated)
-  message(paste("The best paramater for your datasets is: nfeatures=", bestp[[1]], ", resolution=", bestp[[2]], ". the max coincidence is: ", max(ratios), sep = ''))
-}
+  }
 

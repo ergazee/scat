@@ -1,5 +1,3 @@
-## This function visualize genes distribution of .
-
 #' @param data.markers
 #' @param orgdb
 #' @param database

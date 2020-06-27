@@ -1,5 +1,3 @@
-## This function draw Venn plot
-
 #' @param data a list of reference and unmark data in Seurat object format
 #' @param name the best value of Seurat parameter 'nfeatures'
 #'

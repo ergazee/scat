@@ -1,5 +1,3 @@
-## This function visualize genes distribution of .
-
 #' @param data
 #' @param label1
 #' @param label2

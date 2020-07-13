@@ -47,19 +47,19 @@ mat4 <- read.table("..//extdata//Data2.txt",header=TRUE,row.names = 1)
 导入参考数据集的标签信息
 ```{r}
 refLabel1 <- read.table("..//extdata//refLabel1.txt",header=TRUE,row.names = 1)
-refLabel1$refLabel <- refLabel1$Lineage
+refLabel1$refLabel <- refLabel1$CellType
 
 refLabel2 <- read.table("..//extdata//refLabel2.txt",header=TRUE,row.names = 1)
-refLabel2$refLabel <- refLabel2$Lineage
+refLabel2$refLabel <- refLabel2$CellType
 ```
 
 分别将实验数据集和参考数据集处理为seurat对象，然后保存为data.list
 ```{r}
-refData1 <- datainput(mat=mat1, name="Human_Ref", refLabel=refLabel1)
-refData2 <- datainput(mat=mat2, name="Monkey_Ref", refLabel=refLabel2)
+refData1 <- datainput(mat=mat1, name="Ref_data1", refLabel=refLabel1)
+refData2 <- datainput(mat=mat2, name="Ref_data2", refLabel=refLabel2)
 
-data1 <- datainput(mat=mat3, name="Human_Chimera")
-data2 <- datainput(mat=mat4, name="Monkey_Chimera")
+data1 <- datainput(mat=mat3, name="Query_data1")
+data2 <- datainput(mat=mat4, name="Query_data2")
 
 data.list <- list(data1, data2, refData1, refData2)
 rm(list=setdiff(ls(), "data.list"))
@@ -136,8 +136,8 @@ Barplot(data.integrated,"celltype","nFeature_RNA")
 
 ### 提取特定样本，计算各亚群的显著上调markers
 ```{r fig.width=8, fig.height=6}
-cells.use <- colnames(data.integrated)[which(data.integrated[[]]['type'] == "Human_Chimera" |
-                                             data.integrated[[]]['type'] == "Monkey_Chimera")]
+cells.use <- colnames(data.integrated)[which(data.integrated[[]]['type'] == "Query_data1" |
+                                             data.integrated[[]]['type'] == "Query_data2")]
 data.new <- subset(data.integrated, cells = cells.use)
 Sankeyplot(data.new,"refLabel","seurat_clusters","celltype")
 data.markers <- FindAllMarkers(data.new, only.pos = TRUE, min.pct = 0.2, logfc.threshold = 0.2)

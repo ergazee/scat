@@ -505,9 +505,9 @@ Sankeyplot(data.new, &quot;refLabel&quot;, &quot;seurat_clusters&quot;, &quot;ce
 </div>
 <div id="绘制亚群间markers的韦恩图png文件保存在工作路径中" class="section level3">
 <h3>绘制亚群间markers的韦恩图，png文件保存在工作路径中</h3>
-<pre class="r"><code>markers &lt;- list(PE = data.markers[data.markers$cluster == &quot;PE&quot;, ]$gene, TE = data.markers[data.markers$cluster == &quot;TE&quot;, ]$gene, 
-    EPI = data.markers[data.markers$cluster == &quot;EPI&quot;, ]$gene)
-VN3(markers, &quot;PE_TE_EPI.png&quot;)</code></pre>
+<pre class="r"><code>markers &lt;- list(A = data.markers[data.markers$cluster == &quot;A&quot;, ]$gene, B = data.markers[data.markers$cluster == &quot;B&quot;, ]$gene, 
+    C = data.markers[data.markers$cluster == &quot;C&quot;, ]$gene)
+VN3(markers, &quot;A_B_C.png&quot;)</code></pre>
 <details>
 <p><summary><strong>VN2，VN3，VN4，VN5函数对应不同的亚群数量</strong></summary></p>
 </div>
